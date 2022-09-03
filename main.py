@@ -69,10 +69,21 @@ def atualizar_tabela(tipo, num):
             ignore_index = True)
     df.to_csv("atendimentos.csv", index = False)
 
+@app.get("/chamada", tags=["Chamada da Próxima Senha"])
+async def proxima_senha():
+    ### Senhas SP intercaladas com SE|SG
+    ### SE tem prioridade a SG
+
+    ### Checar última senha atendida
+    ## Se SE|SG -> Chamar SP
+    df = pd.read_csv('atendimentos.csv')
+
+
+    return "Próxima Senha"
 
 @app.get("/senha/{tipo}", tags=["Retirar Senha"])
 async def retirar_senha(
-    tipo: str = Path(title="The ID of the item to get")
+    tipo: str = Path(title="Código do Tipo da Senha")
 ):
 
     ### Análise se o pedido de senha foi feito fora do horário do expediente
