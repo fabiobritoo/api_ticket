@@ -79,10 +79,11 @@ async def retirar_senha(
     inicio_expediente = pd.to_datetime(datetime.datetime.now().replace(hour = 7, minute = 0, second = 0, microsecond = 0))
     fim_expediente = pd.to_datetime(datetime.datetime.now().replace(hour = 17, minute = 0, second = 0, microsecond = 0))
 
-    horario_atual = pd.to_datetime(datetime.datetime.now())
+    # horario_atual = pd.to_datetime(datetime.datetime.now())
+    horario_atual = pd.to_datetime(datetime.datetime.now().replace(hour = 6))
 
-    if (horario_atual < inicio_expediente) and (horario_atual > fim_expediente):
-        return {"senha": "Fora do Expediênte de Trabalho"}
+    if (horario_atual < inicio_expediente) or (horario_atual > fim_expediente):
+        return {"senha": "Fora do Expediente de Trabalho"}
 
     ### Checar se o tipo é um tipo válido
     tipos_disponiveis = ['SG','SE','SP']
