@@ -66,7 +66,7 @@ def atualizar_tabela(tipo, num):
 async def retirar_senha(
     tipo: str = Path(title="The ID of the item to get")
 ):
-    tipos_disponiveis = ['SG','SA','SP']
+    tipos_disponiveis = ['SG','SE','SP']
     if tipo not in tipos_disponiveis:
         return {"senha": "Tipo Requisitado não Existe"}
 
@@ -77,7 +77,7 @@ async def retirar_senha(
 
     ### Atualizar o banco
     atualizar_tabela(tipo, senha)
-    
+
     return results
 
 
