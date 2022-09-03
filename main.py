@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json
 import requests
-import re
+import pandas as pd
 
 # uvicorn main:app --reload  
 
@@ -41,14 +41,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+def ultima_senha(tipo):
+    df = pd.read_csv("atendimentos.csv")
+    last_password = int(df[df["Tipo_Senha"] == tipo]["Numeracao"].max())
+    return last_password
+
+
+
 @app.get("/senha/{tipo}", tags=["Retirar Senha"])
 async def retirar_senha(
-    tipo: int = Path(title="The ID of the item to get"),
-    q: Union[str, None] = Query(default=None, alias="item-query"),
+    tipo: str = Path(title="The ID of the item to get")
 ):
-    results = {"item_id": tipo}
-    if q:
-        results.update({"q": q})
+    tipos_disponiveis = ['SG','SA','SP']
+    if tipo not in tipos_disponiveis:
+        return {"senha": "Tipo Requisitado não Existe"}
+    ###Checar no banco última senha do tipo
+    senha = ultima_senha(tipo) + 1
+    codigo_senha = tipo + str(senha).zfill(3)
+    results = {"senha": codigo_senha}
     return results
 
 
