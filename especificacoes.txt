@@ -1,0 +1,29 @@
+--------"O cliente relata que em sua infraestrutura de TI já há 
+suporte para as tecnologias de Banco de dados MySQL em sua 
+versão 8.0, backend desenvolvido em NodeJS e frontend 
+desenvolvido com React, Angular ou Vue. ".
+
+O sistema deverá tratar o início do expediente de 
+trabalho, começando às 7 horas da manhã e o final do 
+expediente de trabalho, encerrando às 17 horas. Caso sobrem 
+senhas estas deverão ser descartadas.
+No painel de chamados deverá constar a informação das 
+5 últimas senhas chamadas. Não poderá constar a próxima 
+senha, pois entre a finalização de um SA e o acionamento do 
+painel pelo AA, poderá ser emitida uma nova senha que mudará 
+a sequência de atendimentos.
+Não haverá guichês para atendimento específico, 
+qualquer guichê poderá atender qualquer tipo de senha.
+
+A senha para retirada de exames (SE) não possui 
+prioridade, entretanto pelo tipo de atendimento ser muito 
+rápido, seu tempo médio de atendimento (TM) é inferior a 1 
+minuto, a priorização será ignorada e a senha será chamada 
+para o próximo guichê que estiver disponível, após o 
+atendimento de uma senha SP. Seu TM pode variar entre 1 
+minuto para 95% dos SA e 5 minutos para 5% dos SA.
+Já a senha geral (SG), por consequência, terá a menor 
+prioridade de atendimento, sendo chamada para atendimento 
+assim que houver um guichê disponível após finalização do 
+atendimento para as senhas SP e SE, caso disponíveis. Seu TM 
+varia em igual proporção 3 minutos para baixo ou para cima.
