@@ -43,9 +43,17 @@ app.add_middleware(
 )
 
 
-def ultima_senha(tipo):
+def ultima_senha(tipo, inicio_expediente):
     df = pd.read_csv("atendimentos.csv")
-    last_password = int(df[df["Tipo_Senha"] == tipo]["Numeracao"].max())
+
+    ultimo_registro = df[df["Tipo_Senha"] == tipo].tail(1)
+    data_ultimo_registro = pd.to_datetime(ultimo_registro["Data_Emissao"]).values[0]
+
+    if data_ultimo_registro < inicio_expediente:
+        last_password = 0
+    else:
+        last_password = int(ultimo_registro["Numeracao"])
+
     return last_password
 
 def atualizar_tabela(tipo, num):
@@ -66,12 +74,23 @@ def atualizar_tabela(tipo, num):
 async def retirar_senha(
     tipo: str = Path(title="The ID of the item to get")
 ):
+
+    ### Análise se o pedido de senha foi feito fora do horário do expediente
+    inicio_expediente = pd.to_datetime(datetime.datetime.now().replace(hour = 7, minute = 0, second = 0, microsecond = 0))
+    fim_expediente = pd.to_datetime(datetime.datetime.now().replace(hour = 17, minute = 0, second = 0, microsecond = 0))
+
+    horario_atual = pd.to_datetime(datetime.datetime.now())
+
+    if (horario_atual < inicio_expediente) and (horario_atual > fim_expediente):
+        return {"senha": "Fora do Expediênte de Trabalho"}
+
+    ### Checar se o tipo é um tipo válido
     tipos_disponiveis = ['SG','SE','SP']
     if tipo not in tipos_disponiveis:
-        return {"senha": "Tipo Requisitado não Existe"}
+        return {"senha": "Tipo Requisitado não Existe"}  
 
     ### Checar no banco última senha do tipo
-    senha = ultima_senha(tipo) + 1
+    senha = ultima_senha(tipo, inicio_expediente) + 1
     codigo_senha = tipo + str(senha).zfill(3)
     results = {"senha": codigo_senha}
 
