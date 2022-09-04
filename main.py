@@ -64,14 +64,18 @@ def atualizar_tabela(tipo, num, codigo_senha):
     if np.isnan(df.ID.max()):
         max_id = 0
 
-    df = df.append({
-            'ID' : max_id + 1
-            , 'Tipo_Senha' : tipo
-            , 'Numeracao' : num
-            , 'Codigo_Senha': codigo_senha
-            , 'Data_Emissao': datetime.datetime.now()
-            } , 
-            ignore_index = True)
+    df_new_row = pd.DataFrame(
+        [[
+            max_id + 1
+            ,'SP'
+            ,1
+            ,'codigo_senha'
+            , datetime.datetime.now()
+            ]]
+        , columns=['ID','Tipo_Senha','Numeracao','Codigo_Senha','Data_Emissao'])
+
+    df = pd.concat([df,df_new_row]).reset_index(drop=True)
+
     df.to_csv("atendimentos.csv", index = False)
 
 @app.get("/ultimassenhas", tags =["Ultimas 5 Senhas Chamadas"])
