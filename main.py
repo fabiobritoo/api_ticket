@@ -11,6 +11,9 @@ import pandas as pd
 import numpy as np
 import datetime
 
+from db.connect import connect
+
+con = connect()
 # uvicorn main:app --reload  
 
 app = FastAPI(    
