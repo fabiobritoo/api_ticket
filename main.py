@@ -11,6 +11,12 @@ import pandas as pd
 import numpy as np
 import datetime
 
+import warnings
+warnings.filterwarnings("ignore")
+
+from db.connect import connect
+
+
 # uvicorn main:app --reload  
 
 app = FastAPI(    
@@ -25,97 +31,131 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+global con
+
+@app.on_event("startup")
+async def startup_event():
+   con = connect() 
+
+@app.on_event("shutdown")
+def shutdown_event():
+    con.close()
+
 def encontrar_senha_por_id(id):
-    df = pd.read_csv("atendimentos.csv")
-    codigo_senha = df[df['ID']==id].Codigo_Senha.values[0]
+   
+    df = pd.read_sql_query('select * from "atendimentos"',con=con)
+
+
+    codigo_senha = df[df['id']==id].codigo_senha.values[0]
     return codigo_senha
 
 def ultima_senha(tipo, inicio_expediente):
-    df = pd.read_csv("atendimentos.csv")
+    ## Iniciar Conecção
+   
+    df = pd.read_sql_query('select * from "atendimentos"',con=con)
 
-    ultimo_registro = df[df["Tipo_Senha"] == tipo].tail(1)
+
+    ultimo_registro = df[df["tipo_senha"] == tipo].tail(1)
 
     if len(ultimo_registro) == 0:
         last_password = 0
         return last_password
 
-    data_ultimo_registro = pd.to_datetime(ultimo_registro["Data_Emissao"]).values[0]
+    data_ultimo_registro = pd.to_datetime(ultimo_registro["data_emissao"]).values[0]
 
     if data_ultimo_registro < inicio_expediente:
         last_password = 0
     else:
-        last_password = int(ultimo_registro["Numeracao"])
+        last_password = int(ultimo_registro["numeracao"])
 
     return last_password
 
+
+def update_column(id, new_value, column_name,table_name):
+    cur = con.cursor()
+
+    sql = f"""    
+    UPDATE {table_name} 
+    SET  {column_name} = '{new_value}'
+    Where id = {id}
+    """    
+    cur.execute(sql)
+    con.commit()
+    count = cur.rowcount
+    print(count, "Record updated successfully into mobile table")
+
 def atualizar_tabela_atendimento(id, guiche):
-    ### Obter ID da tabela
-    df = pd.read_csv("atendimentos.csv")
+    ### Obter id da tabela
+       
+    df = pd.read_sql_query('select * from "atendimentos"',con=con)
 
-    df.loc[df.ID==id,"Guiche"] = guiche
-    df.loc[df.ID==id,"Data_Atendimento"] = datetime.datetime.now()
 
-    df.to_csv("atendimentos.csv", index = False)
+    df.loc[df.id==id,"guiche"] = guiche
+    df.loc[df.id==id,"data_atendimento"] = datetime.datetime.now()
 
-def atualizar_tabela(tipo, num, codigo_senha):
-    ### Obter ID da tabela
-    df = pd.read_csv("atendimentos.csv")
-    max_id = df.ID.max()
-    if np.isnan(df.ID.max()):
-        max_id = 0
+    print("Valor do ID:",id)
+    update_column(id,guiche,"guiche","atendimentos")
+    update_column(id,datetime.datetime.now(),"data_atendimento","atendimentos")
 
-    df_new_row = pd.DataFrame(
-        [[
-            max_id + 1
-            ,'SP'
-            ,1
-            ,'codigo_senha'
-            , datetime.datetime.now()
-            ]]
-        , columns=['ID','Tipo_Senha','Numeracao','Codigo_Senha','Data_Emissao'])
 
-    df = pd.concat([df,df_new_row]).reset_index(drop=True)
+def inserir_linha(tipo, num, codigo_senha):
+    ### Obter id da tabela
+   
+    cur = con.cursor()
 
-    df.to_csv("atendimentos.csv", index = False)
+    sql = f"""    
+    INSERT INTO atendimentos (tipo_senha, numeracao,codigo_senha,data_emissao) 
+    VALUES ('{tipo}','{num}','{codigo_senha}','{datetime.datetime.now()}')
+    """    
+    cur.execute(sql)
+    con.commit()
+    count = cur.rowcount
+    print(count, "Record inserted successfully into mobile table")
+
 
 @app.get("/ultimassenhas", tags =["Ultimas 5 Senhas Chamadas"])
 async def ultimas_senhas():
-    df = pd.read_csv('atendimentos.csv')
-    lista = list(df[~df["Data_Atendimento"].isna()].sort_values(by = "Data_Atendimento").iloc[-5:]["Codigo_Senha"])
+   
+    df = pd.read_sql_query('select * from "atendimentos"',con=con)
+
+
+    lista = list(df[~df["data_atendimento"].isna()].sort_values(by = "data_atendimento").iloc[-5:]["codigo_senha"])
     return lista
 
 @app.get("/chamada/{guiche}", tags=["Chamada da Próxima Senha"])
 async def proxima_senha(
-    guiche: str = Path(title="Guiche que Chamou a Senha")
+    guiche: str = Path(title="guiche que Chamou a Senha")
 ):
     ### Senhas SP intercaladas com SE|SG
     ### SE tem prioridade a SG
 
     ### Checar última senha atendida
     ## Se SE|SG -> Chamar SP
-    df = pd.read_csv('atendimentos.csv')
+   
+    df = pd.read_sql_query('select * from "atendimentos"',con=con)
 
-    ultimo_chamado = df[~df["Data_Atendimento"].isna()].sort_values(by = "Data_Atendimento").tail(1)
+
+    ultimo_chamado = df[~df["data_atendimento"].isna()].sort_values(by = "data_atendimento").tail(1)
 
     ## Definir Prioridade
     if len(ultimo_chamado) == 0:
         prioridade = ['SP','SE','SG']
     else:
-        ultimo_tipo_senha = ultimo_chamado["Tipo_Senha"].values[0]
+        ultimo_tipo_senha = ultimo_chamado["tipo_senha"].values[0]
         if (ultimo_tipo_senha == 'SP'):
             prioridade = ['SE','SG','SP']
         else:
             prioridade = ['SP','SE','SG']
 
-    ## Encontrar ID
-    chamados_esperando = df[df["Data_Atendimento"].isna()].sort_values(by = "Data_Emissao")
+    ## Encontrar id
+    chamados_esperando = df[df["data_atendimento"].isna()].sort_values(by = "data_emissao")
     if len(chamados_esperando) == 0:
         return {"senha": "Não há senhas a serem chamadas"} 
 
     for tipo in prioridade:
-        chamados_prioritarios = chamados_esperando[chamados_esperando["Tipo_Senha"] == tipo].head(1)
+        chamados_prioritarios = chamados_esperando[chamados_esperando["tipo_senha"] == tipo].head(1)
         if (len(chamados_prioritarios) != 0):
-            id_chamado = chamados_prioritarios.ID.values[0]
+            id_chamado = chamados_prioritarios.id.values[0]
             break
 
     proxima_senha = encontrar_senha_por_id(id_chamado)
@@ -130,6 +170,7 @@ async def proxima_senha(
 async def retirar_senha(
     tipo: str = Path(title="Código do Tipo da Senha")
 ):
+
 
     ### Análise se o pedido de senha foi feito fora do horário do expediente
     inicio_expediente = pd.to_datetime(datetime.datetime.now().replace(hour = 7, minute = 0, second = 0, microsecond = 0))
@@ -160,7 +201,7 @@ async def retirar_senha(
 
 
     ### Atualizar o banco
-    atualizar_tabela(tipo, senha, codigo_senha)
+    inserir_linha(tipo, senha, codigo_senha)
 
     return results
 
