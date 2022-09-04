@@ -16,7 +16,6 @@ warnings.filterwarnings("ignore")
 
 from db.connect import connect
 
-con = connect() 
 
 # uvicorn main:app --reload  
 
@@ -31,6 +30,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+global con
+
+@app.on_event("startup")
+async def startup_event():
+   con = connect() 
+
+@app.on_event("shutdown")
+def shutdown_event():
+    con.close()
 
 def encontrar_senha_por_id(id):
    
