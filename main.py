@@ -31,11 +31,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-global con
+
 
 @app.on_event("startup")
 async def startup_event():
-   con = connect() 
+    global con
+    con = connect() 
 
 @app.on_event("shutdown")
 def shutdown_event():
