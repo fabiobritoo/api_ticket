@@ -11,8 +11,12 @@ import pandas as pd
 import numpy as np
 import datetime
 
+import warnings
+warnings.filterwarnings("ignore")
+
 from db.connect import connect
 
+con = connect() 
 
 # uvicorn main:app --reload  
 
@@ -29,18 +33,18 @@ app.add_middleware(
 )
 
 def encontrar_senha_por_id(id):
-    con = connect()    
+   
     df = pd.read_sql_query('select * from "atendimentos"',con=con)
-    con.close()
+
 
     codigo_senha = df[df['id']==id].codigo_senha.values[0]
     return codigo_senha
 
 def ultima_senha(tipo, inicio_expediente):
     ## Iniciar Conecção
-    con = connect()    
+   
     df = pd.read_sql_query('select * from "atendimentos"',con=con)
-    con.close()
+
 
     ultimo_registro = df[df["tipo_senha"] == tipo].tail(1)
 
@@ -58,42 +62,36 @@ def ultima_senha(tipo, inicio_expediente):
     return last_password
 
 
-def update_column(df, column_name,table_name):
-    conn = connect() 
-    cur = conn.cursor()
+def update_column(id, new_value, column_name,table_name):
+    cur = con.cursor()
 
-    rows = zip(df.id, df[column_name])
-    cur.execute(f"""CREATE TEMP TABLE codelist(id INTEGER, {column_name} INTEGER) ON COMMIT DROP""")
-    cur.executemany(f"""INSERT INTO codelist (id, {column_name}) VALUES(%s, %s)""", rows)
-
-    cur.execute(f"""
-        UPDATE {table_name}
-        SET {column_name} = codelist.{column_name}
-        FROM codelist
-        WHERE codelist.id = atendimentos.id;
-        """)
-
-    cur.rowcount
-    conn.commit()
-    cur.close()
-    conn.close()
+    sql = f"""    
+    UPDATE {table_name} 
+    SET  {column_name} = '{new_value}'
+    Where id = {id}
+    """    
+    cur.execute(sql)
+    con.commit()
+    count = cur.rowcount
+    print(count, "Record updated successfully into mobile table")
 
 def atualizar_tabela_atendimento(id, guiche):
     ### Obter id da tabela
-    con = connect()    
+       
     df = pd.read_sql_query('select * from "atendimentos"',con=con)
-    con.close()
+
 
     df.loc[df.id==id,"guiche"] = guiche
     df.loc[df.id==id,"data_atendimento"] = datetime.datetime.now()
 
-    update_column(df,"guiche","atendimentos")
-    update_column(df,"data_atendimento","atendimentos")
+    print("Valor do ID:",id)
+    update_column(id,guiche,"guiche","atendimentos")
+    update_column(id,datetime.datetime.now(),"data_atendimento","atendimentos")
 
 
 def inserir_linha(tipo, num, codigo_senha):
     ### Obter id da tabela
-    con = connect()    
+   
     cur = con.cursor()
 
     sql = f"""    
@@ -104,15 +102,13 @@ def inserir_linha(tipo, num, codigo_senha):
     con.commit()
     count = cur.rowcount
     print(count, "Record inserted successfully into mobile table")
-    con.close()
-
 
 
 @app.get("/ultimassenhas", tags =["Ultimas 5 Senhas Chamadas"])
 async def ultimas_senhas():
-    con = connect()    
+   
     df = pd.read_sql_query('select * from "atendimentos"',con=con)
-    con.close()
+
 
     lista = list(df[~df["data_atendimento"].isna()].sort_values(by = "data_atendimento").iloc[-5:]["codigo_senha"])
     return lista
@@ -126,9 +122,9 @@ async def proxima_senha(
 
     ### Checar última senha atendida
     ## Se SE|SG -> Chamar SP
-    con = connect()    
+   
     df = pd.read_sql_query('select * from "atendimentos"',con=con)
-    con.close()
+
 
     ultimo_chamado = df[~df["data_atendimento"].isna()].sort_values(by = "data_atendimento").tail(1)
 
