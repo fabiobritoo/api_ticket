@@ -1,21 +1,20 @@
+import datetime
+import json
+import warnings
 from cgi import print_environ
 from typing import Union
 
+import pytz
+import numpy as np
+import pandas as pd
+import requests
 from fastapi import FastAPI, Path, Query
 from fastapi.middleware.cors import CORSMiddleware
-
 from pydantic import BaseModel
-import json
-import requests
-import pandas as pd
-import numpy as np
-import datetime
 
-import warnings
 warnings.filterwarnings("ignore")
 
 from db.connect import connect
-
 
 # uvicorn main:app --reload  
 
@@ -55,14 +54,13 @@ def ultima_senha(tipo, inicio_expediente):
    
     df = pd.read_sql_query('select * from "atendimentos"',con=con)
 
-
     ultimo_registro = df[df["tipo_senha"] == tipo].tail(1)
 
     if len(ultimo_registro) == 0:
         last_password = 0
         return last_password
 
-    data_ultimo_registro = pd.to_datetime(ultimo_registro["data_emissao"]).values[0]
+    data_ultimo_registro = pd.Timestamp(ultimo_registro["data_emissao"].values[0]).replace(tzinfo=pytz.timezone('America/Recife'))
 
     if data_ultimo_registro < inicio_expediente:
         last_password = 0
@@ -92,11 +90,11 @@ def atualizar_tabela_atendimento(id, guiche):
 
 
     df.loc[df.id==id,"guiche"] = guiche
-    df.loc[df.id==id,"data_atendimento"] = datetime.datetime.now()
+    df.loc[df.id==id,"data_atendimento"] = datetime.datetime.now(pytz.timezone('America/Recife'))
 
     print("Valor do ID:",id)
     update_column(id,guiche,"guiche","atendimentos")
-    update_column(id,datetime.datetime.now(),"data_atendimento","atendimentos")
+    update_column(id,datetime.datetime.now(pytz.timezone('America/Recife')),"data_atendimento","atendimentos")
 
 
 def inserir_linha(tipo, num, codigo_senha):
@@ -106,7 +104,7 @@ def inserir_linha(tipo, num, codigo_senha):
 
     sql = f"""    
     INSERT INTO atendimentos (tipo_senha, numeracao,codigo_senha,data_emissao) 
-    VALUES ('{tipo}','{num}','{codigo_senha}','{datetime.datetime.now()}')
+    VALUES ('{tipo}','{num}','{codigo_senha}','{datetime.datetime.now(pytz.timezone('America/Recife'))}')
     """    
     cur.execute(sql)
     con.commit()
@@ -132,8 +130,12 @@ async def proxima_senha(
 
     ### Checar última senha atendida
     ## Se SE|SG -> Chamar SP
-   
-    df = pd.read_sql_query('select * from "atendimentos"',con=con)
+    
+    sql = """
+            select * from "atendimentos"
+            where CAST(data_emissao AS DATE) = CAST(CURRENT_DATE AS DATE)"""
+            
+    df = pd.read_sql_query(sql,con=con)
 
     ultimo_chamado = df[~df["data_atendimento"].isna()].sort_values(by = "data_atendimento").tail(1)
 
@@ -161,10 +163,13 @@ async def proxima_senha(
     proxima_senha = encontrar_senha_por_id(id_chamado)
 
     atualizar_tabela_atendimento(id_chamado, guiche)
+    data = data = datetime.datetime.now(pytz.timezone('America/Recife')).strftime("%d/%m/%Y, %H:%M:%S")
 
     return {
         "senha": proxima_senha
-        ,"guiche": guiche} 
+        , "data_atendimento": data
+        , "guiche": guiche
+        } 
 
 @app.get("/senha/{tipo}", tags=["Retirar Senha"])
 async def retirar_senha(
@@ -173,11 +178,11 @@ async def retirar_senha(
 
 
     ### Análise se o pedido de senha foi feito fora do horário do expediente
-    inicio_expediente = pd.to_datetime(datetime.datetime.now().replace(hour = 7, minute = 0, second = 0, microsecond = 0))
-    fim_expediente = pd.to_datetime(datetime.datetime.now().replace(hour = 17, minute = 0, second = 0, microsecond = 0))
+    inicio_expediente = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 7, minute = 0, second = 0, microsecond = 0))
+    fim_expediente = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 17, minute = 0, second = 0, microsecond = 0))
 
-    horario_atual = pd.to_datetime(datetime.datetime.now())
-    # horario_atual = pd.to_datetime(datetime.datetime.now().replace(hour = 15))
+    horario_atual = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')))
+    # horario_atual = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 15))
 
     # if (horario_atual < inicio_expediente) or (horario_atual > fim_expediente):
     #     return {"senha": "Fora do Expediente de Trabalho"}
@@ -191,11 +196,11 @@ async def retirar_senha(
     senha = ultima_senha(tipo, inicio_expediente) + 1
     codigo_senha = tipo + str(senha).zfill(3)
 
-    data = datetime.datetime.now().strftime("%d/%m/%Y")
-    printer_output = data + " " + str(senha).zfill(2)
+    data = datetime.datetime.now(pytz.timezone('America/Recife')).strftime("%d/%m/%Y, %H:%M:%S")
+    printer_output = data[:10] + " " + str(senha).zfill(2)
     results = {
         "senha": codigo_senha
-        ,"data": data
+        ,"data_emissao": data
         , "printed" : printer_output
         }
 
