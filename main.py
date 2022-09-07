@@ -135,7 +135,6 @@ async def proxima_senha(
    
     df = pd.read_sql_query('select * from "atendimentos"',con=con)
 
-
     ultimo_chamado = df[~df["data_atendimento"].isna()].sort_values(by = "data_atendimento").tail(1)
 
     ## Definir Prioridade
