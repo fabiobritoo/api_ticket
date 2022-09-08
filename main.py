@@ -132,7 +132,7 @@ async def proxima_senha(
     
     sql = """
             select * from "atendimentos"
-            where CAST(data_emissao AS DATE) = CAST(CURRENT_DATE AS DATE)"""
+            where CAST(data_emissao AS DATE) = date(timezone('UTC-3', now()::timestamp))"""
             
     df = pd.read_sql_query(sql,con=con)
 
