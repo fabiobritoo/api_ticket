@@ -81,7 +81,7 @@ def update_column(id, new_value, column_name,table_name):
     cur.execute(sql)
     con.commit()
     count = cur.rowcount
-    print(count, "Record updated successfully into mobile table")
+    print(count, "Record updated successfully into", table_name, "table")
 
 def atualizar_tabela_atendimento(id, guiche):
     ### Obter id da tabela
@@ -116,9 +116,8 @@ def inserir_linha(tipo, num, codigo_senha):
 async def ultimas_senhas():
    
     df = pd.read_sql_query('select * from "atendimentos"',con=con)
-
-
     lista = list(df[~df["data_atendimento"].isna()].sort_values(by = "data_atendimento").iloc[-5:]["codigo_senha"])
+    
     return lista
 
 @app.get("/chamada/{guiche}", tags=["Chamada da Próxima Senha"])
@@ -133,7 +132,7 @@ async def proxima_senha(
     
     sql = """
             select * from "atendimentos"
-            where CAST(data_emissao AS DATE) = CAST(CURRENT_DATE - INTERVAL '3 hour' AS DATE)"""
+            where CAST(data_emissao AS DATE) = CAST(CURRENT_DATE AS DATE)"""
             
     df = pd.read_sql_query(sql,con=con)
 
