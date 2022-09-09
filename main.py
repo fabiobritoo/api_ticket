@@ -124,6 +124,13 @@ async def ultimas_senhas():
 async def proxima_senha(
     guiche: str = Path(title="guiche que Chamou a Senha")
 ):
+    ### Análise se o pedido de senha foi feito fora do horário do expediente
+    inicio_expediente = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 7, minute = 0, second = 0, microsecond = 0))
+    fim_expediente = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 17, minute = 0, second = 0, microsecond = 0))
+    horario_atual = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')))
+
+    if (horario_atual < inicio_expediente) or (horario_atual > fim_expediente):
+        return {"senha": "Fora do Expediente de Trabalho"}
     ### Senhas SP intercaladas com SE|SG
     ### SE tem prioridade a SG
 
@@ -175,11 +182,9 @@ async def retirar_senha(
     tipo: str = Path(title="Código do Tipo da Senha")
 ):
 
-
     ### Análise se o pedido de senha foi feito fora do horário do expediente
     inicio_expediente = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 7, minute = 0, second = 0, microsecond = 0))
     fim_expediente = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 17, minute = 0, second = 0, microsecond = 0))
-
     horario_atual = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')))
 
     if (horario_atual < inicio_expediente) or (horario_atual > fim_expediente):
