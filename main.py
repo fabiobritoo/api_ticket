@@ -162,7 +162,7 @@ async def proxima_senha(
     proxima_senha = encontrar_senha_por_id(id_chamado)
 
     atualizar_tabela_atendimento(id_chamado, guiche)
-    data = data = datetime.datetime.now(pytz.timezone('America/Recife')).strftime("%d/%m/%Y, %H:%M:%S")
+    data = datetime.datetime.now(pytz.timezone('America/Recife')).strftime("%d/%m/%Y, %H:%M:%S")
 
     return {
         "senha": proxima_senha
@@ -181,10 +181,9 @@ async def retirar_senha(
     fim_expediente = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 17, minute = 0, second = 0, microsecond = 0))
 
     horario_atual = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')))
-    # horario_atual = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 15))
 
-    # if (horario_atual < inicio_expediente) or (horario_atual > fim_expediente):
-    #     return {"senha": "Fora do Expediente de Trabalho"}
+    if (horario_atual < inicio_expediente) or (horario_atual > fim_expediente):
+        return {"senha": "Fora do Expediente de Trabalho"}
 
     ### Checar se o tipo é um tipo válido
     tipos_disponiveis = ['SG','SE','SP']
