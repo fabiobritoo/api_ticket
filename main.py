@@ -1,16 +1,11 @@
 import datetime
-import json
 import warnings
-from cgi import print_environ
 from typing import Union
 
 import pytz
-import numpy as np
 import pandas as pd
-import requests
-from fastapi import FastAPI, Path, Query
+from fastapi import FastAPI, Path
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 
 warnings.filterwarnings("ignore")
 
@@ -115,7 +110,12 @@ def inserir_linha(tipo, num, codigo_senha):
 @app.get("/ultimassenhas", tags =["Ultimas 5 Senhas Chamadas"])
 async def ultimas_senhas():
    
-    df = pd.read_sql_query('select * from "atendimentos"',con=con)
+    sql = """
+        select * from "atendimentos"
+        where CAST(data_emissao AS DATE) = date(timezone('UTC-3', now()::timestamp))"""
+            
+    df = pd.read_sql_query(sql,con=con)
+
     lista = list(df[~df["data_atendimento"].isna()].sort_values(by = "data_atendimento").iloc[-5:]["codigo_senha"])
     
     return lista
