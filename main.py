@@ -25,8 +25,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-
 @app.on_event("startup")
 async def startup_event():
     global con
@@ -49,7 +47,7 @@ def ultima_senha(tipo, inicio_expediente):
    
     df = pd.read_sql_query('select * from "atendimentos"',con=con)
 
-    ultimo_registro = df[df["tipo_senha"] == tipo].tail(1)
+    ultimo_registro = df[df["tipo_senha"] == tipo].sort_values(by = "data_emissao").tail(1)
 
     if len(ultimo_registro) == 0:
         last_password = 0
@@ -76,7 +74,7 @@ def update_column(id, new_value, column_name,table_name):
     cur.execute(sql)
     con.commit()
     count = cur.rowcount
-    print(count, "Record updated successfully into", table_name, "table")
+    print(count, "Valor alterado na coluna", column_name, "na tabela", table_name, ":", new_value)
 
 def atualizar_tabela_atendimento(id, guiche):
     ### Obter id da tabela
@@ -87,7 +85,7 @@ def atualizar_tabela_atendimento(id, guiche):
     df.loc[df.id==id,"guiche"] = guiche
     df.loc[df.id==id,"data_atendimento"] = datetime.datetime.now(pytz.timezone('America/Recife'))
 
-    print("Valor do ID:",id)
+    print("ID atualizado:",id)
     update_column(id,guiche,"guiche","atendimentos")
     update_column(id,datetime.datetime.now(pytz.timezone('America/Recife')),"data_atendimento","atendimentos")
 
@@ -104,7 +102,7 @@ def inserir_linha(tipo, num, codigo_senha):
     cur.execute(sql)
     con.commit()
     count = cur.rowcount
-    print(count, "Record inserted successfully into mobile table")
+    print(count, "Valor inserido na tabela atendimentos:", codigo_senha)
 
 
 @app.get("/ultimassenhas", tags =["Ultimas 5 Senhas Chamadas"])
@@ -130,7 +128,7 @@ async def proxima_senha(
     horario_atual = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')))
 
     if (horario_atual < inicio_expediente) or (horario_atual > fim_expediente):
-        return {"senha": "Fora do Expediente de Trabalho"}
+        return {"senha": "Fora do Expediente de Trabalho - 7:00 - 17:00"}
     ### Senhas SP intercaladas com SE|SG
     ### SE tem prioridade a SG
 
@@ -188,12 +186,12 @@ async def retirar_senha(
     horario_atual = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')))
 
     if (horario_atual < inicio_expediente) or (horario_atual > fim_expediente):
-        return {"senha": "Fora do Expediente de Trabalho"}
+        return {"senha": "Fora do Expediente de Trabalho - 7:00 - 17:00"}
 
     ### Checar se o tipo é um tipo válido
     tipos_disponiveis = ['SG','SE','SP']
     if tipo not in tipos_disponiveis:
-        return {"senha": "Tipo Requisitado não Existe"}  
+        return {"senha": "Tipo Requisitado não Existe, escolha um entre: SG, SE, SP"}  
 
     ### Checar no banco última senha do tipo
     senha = ultima_senha(tipo, inicio_expediente) + 1
