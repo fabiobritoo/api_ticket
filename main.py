@@ -25,6 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 async def startup_event():
     global con
@@ -32,10 +33,12 @@ async def startup_event():
 
 @app.on_event("shutdown")
 def shutdown_event():
+    global con
     con.close()
 
 
 def check_and_restart_connection():
+    global con
     if con.closed:
         con = connect()
 
@@ -142,6 +145,10 @@ async def proxima_senha(
 ):
 
     check_and_restart_connection()
+
+    if not guiche.isdigit():
+        return {"Guichê precisa ser um número inteiro."}
+        
     ### Análise se o pedido de senha foi feito fora do horário do expediente
     inicio_expediente = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 7, minute = 0, second = 0, microsecond = 0))
     fim_expediente = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 17, minute = 0, second = 0, microsecond = 0))
@@ -149,6 +156,7 @@ async def proxima_senha(
 
     if (horario_atual < inicio_expediente) or (horario_atual > fim_expediente):
         return {"senha": "Fora do Expediente de Trabalho - 7:00 - 17:00"}
+
     ### Senhas SP intercaladas com SE|SG
     ### SE tem prioridade a SG
 
