@@ -34,8 +34,15 @@ async def startup_event():
 def shutdown_event():
     con.close()
 
+
+def check_and_restart_connection():
+    if con.closed:
+        con = connect()
+
 def encontrar_senha_por_id(id):
    
+    check_and_restart_connection()
+
     df = pd.read_sql_query('select * from "atendimentos"',con=con)
 
 
@@ -43,6 +50,9 @@ def encontrar_senha_por_id(id):
     return codigo_senha
 
 def ultima_senha(tipo, inicio_expediente):
+
+    check_and_restart_connection()
+
     ## Iniciar Conecção
    
     df = pd.read_sql_query('select * from "atendimentos"',con=con)
@@ -64,6 +74,9 @@ def ultima_senha(tipo, inicio_expediente):
 
 
 def update_column(id, new_value, column_name,table_name):
+
+    check_and_restart_connection()
+
     cur = con.cursor()
 
     sql = f"""    
@@ -77,6 +90,8 @@ def update_column(id, new_value, column_name,table_name):
     print(count, "Valor alterado na coluna", column_name, "na tabela", table_name, ":", new_value)
 
 def atualizar_tabela_atendimento(id, guiche):
+
+    check_and_restart_connection()
     ### Obter id da tabela
        
     df = pd.read_sql_query('select * from "atendimentos"',con=con)
@@ -91,6 +106,8 @@ def atualizar_tabela_atendimento(id, guiche):
 
 
 def inserir_linha(tipo, num, codigo_senha):
+
+    check_and_restart_connection()
     ### Obter id da tabela
    
     cur = con.cursor()
@@ -107,7 +124,8 @@ def inserir_linha(tipo, num, codigo_senha):
 
 @app.get("/ultimassenhas", tags =["Ultimas 5 Senhas Chamadas"])
 async def ultimas_senhas():
-   
+
+    check_and_restart_connection()   
     sql = """
         select * from "atendimentos"
         where CAST(data_emissao AS DATE) = date(timezone('UTC-3', now()::timestamp))"""
@@ -122,6 +140,8 @@ async def ultimas_senhas():
 async def proxima_senha(
     guiche: str = Path(title="guiche que Chamou a Senha")
 ):
+
+    check_and_restart_connection()
     ### Análise se o pedido de senha foi feito fora do horário do expediente
     inicio_expediente = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 7, minute = 0, second = 0, microsecond = 0))
     fim_expediente = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 17, minute = 0, second = 0, microsecond = 0))
@@ -180,6 +200,7 @@ async def retirar_senha(
     tipo: str = Path(title="Código do Tipo da Senha")
 ):
 
+    check_and_restart_connection()
     ### Análise se o pedido de senha foi feito fora do horário do expediente
     inicio_expediente = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 7, minute = 0, second = 0, microsecond = 0))
     fim_expediente = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 17, minute = 0, second = 0, microsecond = 0))
