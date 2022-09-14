@@ -25,20 +25,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+ 
 
 @app.on_event("startup")
-async def startup_event():
-    global con
+async def startup_event():  
+    global con  
     con = connect() 
+    print("Conexão Ativa: ",not bool(con.closed))
 
 @app.on_event("shutdown")
-def shutdown_event():
-    global con
+def shutdown_event():    
     con.close()
+    print("Conexão Ativa: ",not bool(con.closed))
 
 
-def check_and_restart_connection():
+def check_and_restart_connection():    
     global con
+    print("Conexão Ativa: ",not bool(con.closed))
     if con.closed:
         con = connect()
 
@@ -128,6 +131,7 @@ def inserir_linha(tipo, num, codigo_senha):
 @app.get("/ultimassenhas", tags =["Ultimas 5 Senhas Chamadas"])
 async def ultimas_senhas():
 
+    
     check_and_restart_connection()   
     sql = """
         select * from "atendimentos"
@@ -136,7 +140,7 @@ async def ultimas_senhas():
     df = pd.read_sql_query(sql,con=con)
 
     lista = list(df[~df["data_atendimento"].isna()].sort_values(by = "data_atendimento").iloc[-5:]["codigo_senha"])
-    
+    con.close()
     return lista
 
 @app.get("/chamada/{guiche}", tags=["Chamada da Próxima Senha"])
