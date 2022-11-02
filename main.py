@@ -158,8 +158,8 @@ async def proxima_senha(
     fim_expediente = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 17, minute = 0, second = 0, microsecond = 0))
     horario_atual = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')))
 
-    if (horario_atual < inicio_expediente) or (horario_atual > fim_expediente):
-        return {"senha": "Fora do Expediente de Trabalho - 7:00 - 17:00"}
+    # if (horario_atual < inicio_expediente) or (horario_atual > fim_expediente):
+    #     return {"senha": "Fora do Expediente de Trabalho - 7:00 - 17:00"}
 
     ### Senhas SP intercaladas com SE|SG
     ### SE tem prioridade a SG
@@ -218,8 +218,8 @@ async def retirar_senha(
     fim_expediente = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')).replace(hour = 17, minute = 0, second = 0, microsecond = 0))
     horario_atual = pd.to_datetime(datetime.datetime.now(pytz.timezone('America/Recife')))
 
-    if (horario_atual < inicio_expediente) or (horario_atual > fim_expediente):
-        return {"senha": "Fora do Expediente de Trabalho - 7:00 - 17:00"}
+    # if (horario_atual < inicio_expediente) or (horario_atual > fim_expediente):
+    #     return {"senha": "Fora do Expediente de Trabalho - 7:00 - 17:00"}
 
     ### Checar se o tipo é um tipo válido
     tipos_disponiveis = ['SG','SE','SP']
